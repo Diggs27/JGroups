@@ -21,6 +21,7 @@ public class DefaultThreadFactory implements ThreadFactory {
     protected String        clusterName;
     protected boolean       includeLocalAddress;
     protected String        address;
+    protected boolean       use_fibers; // use fibers instead of threads (requires Java 15)
 
 
 
@@ -53,6 +54,8 @@ public class DefaultThreadFactory implements ThreadFactory {
         this.address=address;
     }
 
+    public boolean                            useFibers()          {return use_fibers;}
+    public <T extends DefaultThreadFactory> T useFibers(boolean f) {this.use_fibers=f; return (T)this;}
 
     public Thread newThread(Runnable r, String name) {
         return newThread(r, name, null, null);
@@ -67,7 +70,8 @@ public class DefaultThreadFactory implements ThreadFactory {
                                String addr,
                                String cluster_name) {
         String thread_name=getNewThreadName(name, addr, cluster_name);
-        Thread retval=new Thread(r, thread_name);
+        Thread retval=use_fibers? Thread.builder().virtual().task(r).name(thread_name).build()
+          : new Thread(r, thread_name);
         retval.setDaemon(createDaemons);
         return retval;
     }
